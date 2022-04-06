@@ -1,13 +1,13 @@
 import random
-import pygame
+import pygame as pg
 import numpy as np
 
-pygame.init()
+pg.init()
 
 WIDTH, HEIGHT = 1300, 900
-WIN = pygame.display.set_mode((WIDTH, HEIGHT))
+WIN = pg.display.set_mode((WIDTH, HEIGHT))
 FPS = 75
-pygame.display.set_caption('Circle collision')
+pg.display.set_caption('Circles collision')
 
 
 class Circle:
@@ -24,7 +24,7 @@ class Circle:
         self.circle_id = circle_id
 
     def drawCircle(self):
-        pygame.draw.circle(WIN, self.color, (self.x, self.y), self.radius)
+        pg.draw.circle(WIN, self.color, (self.x, self.y), self.radius)
 
         # Circle movement calculations
         self.velocityY += self.ACCELERATION * self.DELTA_TIME
@@ -56,17 +56,18 @@ class Circle:
                 dx = other.x - self.x
                 dy = other.y - self.y
                 distance = np.sqrt(dx ** 2 + dy ** 2)
-                
-                if distance <= other.radius + self.radius:
+                isOverlap = distance <= other.radius + self.radius
+
+                if isOverlap:
+                    tangentDistance = distance - other.radius
+                    overlapDistance = self.radius - tangentDistance
+
+                    self.x -= overlapDistance
+                    self.y -= overlapDistance
+
                     self.velocityX, self.velocityY = -self.velocityY, self.velocityX
                     other.velocityX, other.velocityY = -other.velocityY, other.velocityX
 
-                    tangentDistance = distance - other.radius
-                    overlapDistance = self.radius - tangentDistance
-                    
-                    self.x -= overlapDistance
-                    self.y -= overlapDistance
-        
         self.velocityX *= 0.9994
         self.velocityY *= 0.9994
 
@@ -80,16 +81,16 @@ def createCircle(mouse=False):
 
     radius = random.randint(10, 100)
     if mouse:
-        x = pygame.mouse.get_pos()[0]
-        y = pygame.mouse.get_pos()[1]
+        x = pg.mouse.get_pos()[0]
+        y = pg.mouse.get_pos()[1]
     else:
         x = random.randint(radius, WIDTH - radius)
         y = random.randint(radius, HEIGHT - radius)
 
-    x_vel = y_vel = radius * 0.8
+    x_vel = y_vel = random.randint(100, 800) / radius
     velocity = (x_vel, y_vel)
 
-    r = lambda : random.randint(0, 255)
+    r = lambda: random.randint(0, 255)
     color = (r(), r(), r(), 1)
 
     circle = Circle(x, y, velocity, radius, color, circle_id)
@@ -98,8 +99,9 @@ def createCircle(mouse=False):
 
 
 def main():
+    global circles, circle_id
     run = True
-    clock = pygame.time.Clock()
+    clock = pg.time.Clock()
 
     for _ in range(5):
         createCircle()
@@ -108,19 +110,33 @@ def main():
         clock.tick(FPS)
         WIN.fill('#161a1d')
 
-        # quit pygame
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+        # event handler
+        for event in pg.event.get():
+            # quit pygame
+            if event.type == pg.QUIT:
                 run = False
-            elif event.type == pygame.MOUSEBUTTONUP:
-                createCircle(True)
+            # mouse button pressed
+            elif event.type == pg.MOUSEBUTTONDOWN: 
+                # spawn new circle
+                if pg.mouse.get_pressed()[0]:
+                    createCircle(True)
+            # keyboard key pressed
+            elif event.type == pg.KEYDOWN:
+                # restert screen
+                if pg.key.get_pressed()[pg.K_r]:
+                    WIN.fill('#161a1d')
+                    circles.clear()
+                    circle_id = 0
+                    for _ in range(5):
+                        createCircle()
 
+        # drawing created circles
         for circle in circles:
             circle.drawCircle()
         
-        pygame.display.update()
+        pg.display.update()
         
-    pygame.quit()
+    pg.quit()
     
 
 if __name__ == '__main__':
